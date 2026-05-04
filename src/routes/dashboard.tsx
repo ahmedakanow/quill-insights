@@ -7,8 +7,10 @@ import { BookCard, type BookCardData } from "@/components/book-card";
 import { EmptyState } from "@/components/empty-state";
 import { supabase } from "@/integrations/supabase/client";
 import { getDailyQuote } from "@/lib/quill-data";
-import { BookOpen } from "lucide-react";
+import { buildMilestones, daysBetween, formatMilestoneDate, nextMilestone } from "@/lib/timeline";
+import { BookOpen, Brain, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
   component: () => <RequireAuth><AppShell><Dashboard /></AppShell></RequireAuth>,
@@ -23,6 +25,7 @@ function Dashboard() {
   const [weekDays, setWeekDays] = useState<boolean[]>([]);
   const [stats, setStats] = useState({ finished: 0, reflections: 0, hours: 0 });
   const [recentReflections, setRecentReflections] = useState<any[]>([]);
+  const [dueReviews, setDueReviews] = useState(0);
   const quote = getDailyQuote();
 
   useEffect(() => {
@@ -85,6 +88,14 @@ function Dashboard() {
         .eq("user_id", user.id).order("updated_at", { ascending: false }).limit(3);
       setStats({ finished: finishedCount ?? 0, reflections: refCount ?? 0, hours: Math.round(totalMin / 60) });
       setRecentReflections(recentRefs ?? []);
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const { count: dueCount } = await supabase
+        .from("review_cards")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .lte("next_review_date", todayStr);
+      setDueReviews(dueCount ?? 0);
     })();
   }, [user]);
 
