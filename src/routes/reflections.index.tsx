@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PenLine } from "lucide-react";
 
-export const Route = createFileRoute("/reflections")({
+export const Route = createFileRoute("/reflections/")({
   component: () => <RequireAuth><AppShell><ReflectionsList /></AppShell></RequireAuth>,
 });
 

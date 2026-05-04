@@ -9,14 +9,35 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as PersonalStatementRouteImport } from './routes/personal-statement'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as MyBooksRouteImport } from './routes/my-books'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LibraryRouteImport } from './routes/library'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReflectionsIndexRouteImport } from './routes/reflections.index'
+import { Route as ReflectionsNewRouteImport } from './routes/reflections.new'
+import { Route as ReflectionsIdRouteImport } from './routes/reflections.$id'
+import { Route as ReadBookIdRouteImport } from './routes/read.$bookId'
+import { Route as BookBookIdRouteImport } from './routes/book.$bookId'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PersonalStatementRoute = PersonalStatementRouteImport.update({
+  id: '/personal-statement',
+  path: '/personal-statement',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -24,9 +45,29 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyBooksRoute = MyBooksRouteImport.update({
+  id: '/my-books',
+  path: '/my-books',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AchievementsRoute = AchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -34,48 +75,177 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReflectionsIndexRoute = ReflectionsIndexRouteImport.update({
+  id: '/reflections/',
+  path: '/reflections/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReflectionsNewRoute = ReflectionsNewRouteImport.update({
+  id: '/reflections/new',
+  path: '/reflections/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReflectionsIdRoute = ReflectionsIdRouteImport.update({
+  id: '/reflections/$id',
+  path: '/reflections/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReadBookIdRoute = ReadBookIdRouteImport.update({
+  id: '/read/$bookId',
+  path: '/read/$bookId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookBookIdRoute = BookBookIdRouteImport.update({
+  id: '/book/$bookId',
+  path: '/book/$bookId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
+  '/dashboard': typeof DashboardRoute
+  '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/my-books': typeof MyBooksRoute
   '/onboarding': typeof OnboardingRoute
+  '/personal-statement': typeof PersonalStatementRoute
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRoute
+  '/book/$bookId': typeof BookBookIdRoute
+  '/read/$bookId': typeof ReadBookIdRoute
+  '/reflections/$id': typeof ReflectionsIdRoute
+  '/reflections/new': typeof ReflectionsNewRoute
+  '/reflections/': typeof ReflectionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
+  '/dashboard': typeof DashboardRoute
+  '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/my-books': typeof MyBooksRoute
   '/onboarding': typeof OnboardingRoute
+  '/personal-statement': typeof PersonalStatementRoute
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRoute
+  '/book/$bookId': typeof BookBookIdRoute
+  '/read/$bookId': typeof ReadBookIdRoute
+  '/reflections/$id': typeof ReflectionsIdRoute
+  '/reflections/new': typeof ReflectionsNewRoute
+  '/reflections': typeof ReflectionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
+  '/dashboard': typeof DashboardRoute
+  '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/my-books': typeof MyBooksRoute
   '/onboarding': typeof OnboardingRoute
+  '/personal-statement': typeof PersonalStatementRoute
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRoute
+  '/book/$bookId': typeof BookBookIdRoute
+  '/read/$bookId': typeof ReadBookIdRoute
+  '/reflections/$id': typeof ReflectionsIdRoute
+  '/reflections/new': typeof ReflectionsNewRoute
+  '/reflections/': typeof ReflectionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/onboarding' | '/register'
+  fullPaths:
+    | '/'
+    | '/achievements'
+    | '/dashboard'
+    | '/library'
+    | '/login'
+    | '/my-books'
+    | '/onboarding'
+    | '/personal-statement'
+    | '/register'
+    | '/settings'
+    | '/book/$bookId'
+    | '/read/$bookId'
+    | '/reflections/$id'
+    | '/reflections/new'
+    | '/reflections/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/onboarding' | '/register'
-  id: '__root__' | '/' | '/login' | '/onboarding' | '/register'
+  to:
+    | '/'
+    | '/achievements'
+    | '/dashboard'
+    | '/library'
+    | '/login'
+    | '/my-books'
+    | '/onboarding'
+    | '/personal-statement'
+    | '/register'
+    | '/settings'
+    | '/book/$bookId'
+    | '/read/$bookId'
+    | '/reflections/$id'
+    | '/reflections/new'
+    | '/reflections'
+  id:
+    | '__root__'
+    | '/'
+    | '/achievements'
+    | '/dashboard'
+    | '/library'
+    | '/login'
+    | '/my-books'
+    | '/onboarding'
+    | '/personal-statement'
+    | '/register'
+    | '/settings'
+    | '/book/$bookId'
+    | '/read/$bookId'
+    | '/reflections/$id'
+    | '/reflections/new'
+    | '/reflections/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AchievementsRoute: typeof AchievementsRoute
+  DashboardRoute: typeof DashboardRoute
+  LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
+  MyBooksRoute: typeof MyBooksRoute
   OnboardingRoute: typeof OnboardingRoute
+  PersonalStatementRoute: typeof PersonalStatementRoute
   RegisterRoute: typeof RegisterRoute
+  SettingsRoute: typeof SettingsRoute
+  BookBookIdRoute: typeof BookBookIdRoute
+  ReadBookIdRoute: typeof ReadBookIdRoute
+  ReflectionsIdRoute: typeof ReflectionsIdRoute
+  ReflectionsNewRoute: typeof ReflectionsNewRoute
+  ReflectionsIndexRoute: typeof ReflectionsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/personal-statement': {
+      id: '/personal-statement'
+      path: '/personal-statement'
+      fullPath: '/personal-statement'
+      preLoaderRoute: typeof PersonalStatementRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -85,11 +255,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-books': {
+      id: '/my-books'
+      path: '/my-books'
+      fullPath: '/my-books'
+      preLoaderRoute: typeof MyBooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/achievements': {
+      id: '/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AchievementsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -99,14 +297,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reflections/': {
+      id: '/reflections/'
+      path: '/reflections'
+      fullPath: '/reflections/'
+      preLoaderRoute: typeof ReflectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reflections/new': {
+      id: '/reflections/new'
+      path: '/reflections/new'
+      fullPath: '/reflections/new'
+      preLoaderRoute: typeof ReflectionsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reflections/$id': {
+      id: '/reflections/$id'
+      path: '/reflections/$id'
+      fullPath: '/reflections/$id'
+      preLoaderRoute: typeof ReflectionsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/read/$bookId': {
+      id: '/read/$bookId'
+      path: '/read/$bookId'
+      fullPath: '/read/$bookId'
+      preLoaderRoute: typeof ReadBookIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/$bookId': {
+      id: '/book/$bookId'
+      path: '/book/$bookId'
+      fullPath: '/book/$bookId'
+      preLoaderRoute: typeof BookBookIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AchievementsRoute: AchievementsRoute,
+  DashboardRoute: DashboardRoute,
+  LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
+  MyBooksRoute: MyBooksRoute,
   OnboardingRoute: OnboardingRoute,
+  PersonalStatementRoute: PersonalStatementRoute,
   RegisterRoute: RegisterRoute,
+  SettingsRoute: SettingsRoute,
+  BookBookIdRoute: BookBookIdRoute,
+  ReadBookIdRoute: ReadBookIdRoute,
+  ReflectionsIdRoute: ReflectionsIdRoute,
+  ReflectionsNewRoute: ReflectionsNewRoute,
+  ReflectionsIndexRoute: ReflectionsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
