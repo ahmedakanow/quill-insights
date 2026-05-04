@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { getDailyQuote } from "@/lib/quill-data";
 import { buildMilestones, daysBetween, formatMilestoneDate, nextMilestone } from "@/lib/timeline";
-import { BookOpen, Brain, Check, Sparkles, X } from "lucide-react";
+import { BookOpen, Repeat2, Check, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -225,7 +225,7 @@ function Dashboard() {
         <section className="flex items-center justify-between rounded-xl border-2 border-accent bg-accent/5 p-5 shadow-warm">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-full bg-accent text-accent-foreground">
-              <Brain className="h-5 w-5" />
+              <Repeat2 className="h-5 w-5" />
             </div>
             <div>
               <div className="font-display text-base font-semibold">Daily review</div>
