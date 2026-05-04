@@ -219,12 +219,31 @@ function PSPage() {
       {PS_SECTIONS.map((s) => {
         const linkedIds = blocks[s.key]?.linked_reflection_ids ?? [];
         const linked = reflections.filter((r) => linkedIds.includes(r.id));
+        const content = blocks[s.key]?.content ?? "";
+        const len = content.length;
+        const tooShort = len > 0 && len < minPerSection;
         return (
           <div key={s.key} className="grid gap-4 md:grid-cols-[1fr_240px]">
             <div className="rounded-xl border border-border bg-card p-5 shadow-warm">
-              <h2 className="font-display text-xl font-semibold">{s.label}</h2>
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="font-display text-xl font-semibold">{s.label}</h2>
+                {tooShort && (
+                  <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                    Below {minPerSection} chars
+                  </span>
+                )}
+              </div>
               <p className="mt-0.5 text-xs text-muted-foreground">{s.prompt}</p>
-              <Textarea value={blocks[s.key]?.content ?? ""} onChange={(e) => onChange(s.key, e.target.value)} rows={6} className="mt-3 font-serif-reading text-base" />
+              <Textarea
+                value={content}
+                onChange={(e) => onChange(s.key, e.target.value)}
+                onBlur={() => persist(s.key, { content })}
+                rows={8}
+                className="mt-3 font-serif-reading text-base"
+              />
+              <div className="mt-1 flex justify-end text-[11px] text-muted-foreground">
+                {len} chars · min {minPerSection}
+              </div>
             </div>
             <aside className="rounded-xl border border-dashed border-border bg-card/40 p-3 text-xs">
               <div className="mb-2 flex items-center justify-between">
