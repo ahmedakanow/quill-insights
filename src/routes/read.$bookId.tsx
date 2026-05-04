@@ -98,9 +98,14 @@ function Reader() {
         user_id: user.id, book_id: bookId, duration_minutes: min,
         session_date: new Date().toISOString().slice(0, 10),
       });
+      const { data: existing } = await supabase
+        .from("reading_progress")
+        .select("total_reading_minutes")
+        .eq("user_id", user.id).eq("book_id", bookId).maybeSingle();
+      const newTotal = (existing?.total_reading_minutes ?? 0) + min;
       await supabase.from("reading_progress").update({
         scroll_position: scrollPct, last_read_at: new Date().toISOString(),
-        total_reading_minutes: undefined,
+        total_reading_minutes: newTotal,
       }).eq("user_id", user.id).eq("book_id", bookId);
     };
     const id = setInterval(flush, 60000);
