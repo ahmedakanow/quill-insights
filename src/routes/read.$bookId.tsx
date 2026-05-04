@@ -60,6 +60,10 @@ function Reader() {
   const [selection, setSelection] = useState<{ text: string; pct: number; x: number; y: number } | null>(null);
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [showHint, setShowHint] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("quill-reader-hint-dismissed") !== "1";
+  });
 
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
@@ -307,6 +311,23 @@ function Reader() {
           </Sheet>
         </div>
       </header>
+
+      {/* First-visit hint */}
+      {showHint && (
+        <div className="mx-auto mt-3 flex max-w-2xl items-start gap-3 rounded-lg border border-border bg-card/80 px-4 py-2 text-sm shadow-warm">
+          <span className="mt-0.5">💡</span>
+          <div className="flex-1">
+            <span className="font-medium">Tip:</span> Select any text to highlight it, add a note, or bookmark the spot. Press <kbd className="rounded border border-border bg-muted px-1 font-mono text-xs">?</kbd> for keyboard shortcuts.
+          </div>
+          <button
+            onClick={() => { setShowHint(false); localStorage.setItem("quill-reader-hint-dismissed", "1"); }}
+            className="text-xs text-muted-foreground hover:text-foreground"
+            aria-label="Dismiss tip"
+          >
+            Got it
+          </button>
+        </div>
+      )}
 
       {/* Reading column */}
       <article
