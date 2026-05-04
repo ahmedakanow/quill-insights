@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { Plus, X } from "lucide-react";
 import { RequireAuth } from "@/components/require-auth";
 import { AppShell } from "@/components/app-shell";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PS_SECTIONS } from "@/lib/quill-data";
@@ -14,30 +18,45 @@ export const Route = createFileRoute("/personal-statement")({
   component: () => <RequireAuth><AppShell><PSPage /></AppShell></RequireAuth>,
 });
 
+type Block = { id?: string; content: string; linked_reflection_ids: string[] };
+
 function PSPage() {
   const { user } = useAuth();
-  const [blocks, setBlocks] = useState<Record<string, { id?: string; content: string }>>({});
+  const [blocks, setBlocks] = useState<Record<string, Block>>({});
   const [reflections, setReflections] = useState<any[]>([]);
+  const [openDialog, setOpenDialog] = useState<string | null>(null);
   const timer = useRef<any>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase.from("personal_statement_blocks").select("*").eq("user_id", user.id)
       .then(({ data }) => {
-        const m: Record<string, any> = {};
-        PS_SECTIONS.forEach((s) => { m[s.key] = { content: "" }; });
-        (data ?? []).forEach((b: any) => { m[b.section] = { id: b.id, content: b.content }; });
+        const m: Record<string, Block> = {};
+        PS_SECTIONS.forEach((s) => { m[s.key] = { content: "", linked_reflection_ids: [] }; });
+        (data ?? []).forEach((b: any) => {
+          m[b.section] = {
+            id: b.id,
+            content: b.content,
+            linked_reflection_ids: b.linked_reflection_ids ?? [],
+          };
+        });
         setBlocks(m);
       });
     supabase.from("reflections").select("id, argument_summary, interview_point, books(title)")
       .eq("user_id", user.id).eq("is_complete", true).then(({ data }) => setReflections(data ?? []));
   }, [user]);
 
-  async function save(section: string, content: string) {
+  async function persist(section: string, patch: Partial<Block>) {
     if (!user) return;
     const sec = PS_SECTIONS.find((s) => s.key === section)!;
+    const current = blocks[section] ?? { content: "", linked_reflection_ids: [] };
+    const merged = { ...current, ...patch };
     await supabase.from("personal_statement_blocks").upsert({
-      user_id: user.id, section, content, sort_order: sec.order,
+      user_id: user.id,
+      section,
+      content: merged.content,
+      linked_reflection_ids: merged.linked_reflection_ids,
+      sort_order: sec.order,
     }, { onConflict: "user_id,section" });
     const newly = await checkAchievements(user.id);
     newly.forEach((t) => toast.success(`Achievement: ${t.replace(/_/g, " ")}`));
@@ -46,7 +65,17 @@ function PSPage() {
   function onChange(section: string, v: string) {
     setBlocks((b) => ({ ...b, [section]: { ...b[section], content: v } }));
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => save(section, v), 800);
+    timer.current = setTimeout(() => persist(section, { content: v }), 800);
+  }
+
+  async function toggleLink(section: string, reflectionId: string) {
+    const cur = blocks[section]?.linked_reflection_ids ?? [];
+    const next = cur.includes(reflectionId)
+      ? cur.filter((id) => id !== reflectionId)
+      : [...cur, reflectionId];
+    setBlocks((b) => ({ ...b, [section]: { ...b[section], linked_reflection_ids: next } }));
+    await persist(section, { linked_reflection_ids: next });
+    toast.success(cur.includes(reflectionId) ? "Reflection unlinked" : "Reflection linked");
   }
 
   const totalChars = Object.values(blocks).reduce((s, b) => s + (b?.content?.length ?? 0), 0);
@@ -78,30 +107,96 @@ function PSPage() {
         </div>
       </div>
 
-      {PS_SECTIONS.map((s) => (
-        <div key={s.key} className="grid gap-4 md:grid-cols-[1fr_240px]">
-          <div className="rounded-xl border border-border bg-card p-5 shadow-warm">
-            <h2 className="font-display text-xl font-semibold">{s.label}</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">{s.prompt}</p>
-            <Textarea value={blocks[s.key]?.content ?? ""} onChange={(e) => onChange(s.key, e.target.value)} rows={6} className="mt-3 font-serif-reading text-base" />
+      {PS_SECTIONS.map((s) => {
+        const linkedIds = blocks[s.key]?.linked_reflection_ids ?? [];
+        const linked = reflections.filter((r) => linkedIds.includes(r.id));
+        return (
+          <div key={s.key} className="grid gap-4 md:grid-cols-[1fr_240px]">
+            <div className="rounded-xl border border-border bg-card p-5 shadow-warm">
+              <h2 className="font-display text-xl font-semibold">{s.label}</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">{s.prompt}</p>
+              <Textarea value={blocks[s.key]?.content ?? ""} onChange={(e) => onChange(s.key, e.target.value)} rows={6} className="mt-3 font-serif-reading text-base" />
+            </div>
+            <aside className="rounded-xl border border-dashed border-border bg-card/40 p-3 text-xs">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="font-medium text-muted-foreground uppercase tracking-wide">Linked reflections</div>
+              </div>
+              {linked.length === 0 ? (
+                <p className="text-muted-foreground">No reflections linked yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {linked.map((r) => (
+                    <li key={r.id} className="rounded border border-border bg-card p-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-display text-sm font-semibold">{r.books?.title}</div>
+                          <div className="mt-1 text-muted-foreground line-clamp-3">{r.interview_point || r.argument_summary}</div>
+                        </div>
+                        <button
+                          onClick={() => toggleLink(s.key, r.id)}
+                          className="grid h-5 w-5 shrink-0 place-items-center rounded hover:bg-muted"
+                          title="Unlink"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <Dialog open={openDialog === s.key} onOpenChange={(o) => setOpenDialog(o ? s.key : null)}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="mt-3 w-full gap-1">
+                    <Plus className="h-3 w-3" /> Link a reflection
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Link reflections — {s.label}</DialogTitle>
+                    <DialogDescription>
+                      Pick completed reflections to anchor this section.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {reflections.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      Complete some reflections first.
+                    </p>
+                  ) : (
+                    <ul className="max-h-[60vh] space-y-2 overflow-auto">
+                      {reflections.map((r) => {
+                        const isLinked = linkedIds.includes(r.id);
+                        return (
+                          <li key={r.id}>
+                            <button
+                              onClick={() => toggleLink(s.key, r.id)}
+                              className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                                isLinked ? "border-accent bg-accent/10" : "border-border hover:bg-muted/50"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="font-display text-sm font-semibold">{r.books?.title}</div>
+                                  <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                    {r.interview_point || r.argument_summary}
+                                  </div>
+                                </div>
+                                <span className="shrink-0 text-xs font-medium">
+                                  {isLinked ? "Linked" : "Link"}
+                                </span>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </aside>
           </div>
-          <aside className="rounded-xl border border-dashed border-border bg-card/40 p-3 text-xs">
-            <div className="mb-2 font-medium text-muted-foreground uppercase tracking-wide">Reference reflections</div>
-            {reflections.length === 0 ? (
-              <p className="text-muted-foreground">Complete reflections to draw on here.</p>
-            ) : (
-              <ul className="space-y-2">
-                {reflections.slice(0, 3).map((r) => (
-                  <li key={r.id} className="rounded border border-border bg-card p-2">
-                    <div className="font-display text-sm font-semibold">{r.books?.title}</div>
-                    <div className="mt-1 text-muted-foreground line-clamp-3">{r.interview_point || r.argument_summary}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </aside>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
