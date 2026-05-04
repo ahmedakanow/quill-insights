@@ -103,8 +103,69 @@ function Dashboard() {
   const pct = Math.min(1, todayMinutes / goal);
   const C = 2 * Math.PI * 56;
 
+  const today = new Date();
+  const interviewDate = profile?.interview_date ? new Date(profile.interview_date) : null;
+  const milestones = buildMilestones(profile?.year_group, interviewDate, today);
+  const upcoming = nextMilestone(milestones, today);
+  // Show only the 4 nearest (last past + next 3 upcoming) for compactness
+  const upcomingIdx = upcoming ? milestones.findIndex((m) => m.key === upcoming.key) : milestones.length;
+  const tlStart = Math.max(0, upcomingIdx - 1);
+  const tlSlice = milestones.slice(tlStart, tlStart + 4);
+
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-8 lg:px-8">
+      {/* Oxbridge Timeline */}
+      <section className="rounded-xl border border-border bg-card p-6 shadow-warm">
+        <div className="mb-4 flex items-baseline justify-between">
+          <h2 className="font-display text-lg font-semibold">Oxbridge timeline</h2>
+          <Link to="/timeline" className="text-xs text-accent underline-offset-4 hover:underline">View full timeline</Link>
+        </div>
+        {!upcoming ? (
+          <p className="text-sm text-muted-foreground">Offers season — good luck!</p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-4">
+            {tlSlice.map((m) => {
+              const days = daysBetween(today, new Date(m.date));
+              const isPast = days < 0;
+              const isNext = upcoming.key === m.key;
+              return (
+                <div key={m.key} className={cn(
+                  "rounded-lg border p-3 transition-quill",
+                  isNext ? "border-accent bg-accent/5" : "border-border bg-background/40",
+                )}>
+                  <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <span>{formatMilestoneDate(new Date(m.date))}</span>
+                    {isPast && <Check className="h-3 w-3 text-emerald-500" />}
+                  </div>
+                  <div className="mt-1 font-display text-sm font-semibold">{m.label}</div>
+                  <div className={cn("mt-1 text-xs", isNext ? "text-accent font-medium" : "text-muted-foreground")}>
+                    {isPast ? "Passed" : `${days} days away`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Daily review CTA */}
+      {dueReviews > 0 && (
+        <section className="flex items-center justify-between rounded-xl border-2 border-accent bg-accent/5 p-5 shadow-warm">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-accent text-accent-foreground">
+              <Brain className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-display text-base font-semibold">Daily review</div>
+              <div className="text-sm text-muted-foreground">
+                You have {dueReviews} interview prompt{dueReviews === 1 ? "" : "s"} to review today.
+              </div>
+            </div>
+          </div>
+          <Button asChild><Link to="/review">Start review</Link></Button>
+        </section>
+      )}
+
       {/* Welcome */}
       <section>
         <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
