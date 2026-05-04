@@ -20,6 +20,17 @@ function Onboarding() {
   const [uni, setUni] = useState<"oxford" | "cambridge" | "both" | "">("");
   const [subject, setSubject] = useState("");
   const [goal, setGoal] = useState(30);
+  const [yearGroup, setYearGroup] = useState<"year_12" | "year_13" | "">("");
+  const initialInterview = (() => {
+    const now = new Date();
+    const acStart = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+    // First Monday of December of the application year (Y13 = acStart, default)
+    const d = new Date(acStart, 11, 1);
+    const offset = (1 - d.getDay() + 7) % 7;
+    d.setDate(1 + offset);
+    return d.toISOString().slice(0, 10);
+  })();
+  const [interviewDate, setInterviewDate] = useState<string>(initialInterview);
   const [saving, setSaving] = useState(false);
 
   async function finish() {
@@ -31,6 +42,8 @@ function Onboarding() {
         target_university: uni || null,
         target_subject: subject,
         daily_reading_goal_minutes: goal,
+        year_group: yearGroup || null,
+        interview_date: interviewDate || null,
       })
       .eq("id", user.id);
     setSaving(false);
