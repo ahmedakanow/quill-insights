@@ -213,7 +213,8 @@ function Reader() {
                   <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="w-full rounded-md border border-border bg-background p-2">
                     <option value="var(--font-serif)">Source Serif 4</option>
                     <option value="Georgia, serif">Georgia</option>
-                    <option value="'Atkinson Hyperlegible', sans-serif">Atkinson Hyperlegible</option>
+                    <option value='"Atkinson Hyperlegible", sans-serif'>Atkinson Hyperlegible</option>
+                    <option value='"OpenDyslexic", sans-serif'>OpenDyslexic</option>
                     <option value="system-ui, sans-serif">System sans-serif</option>
                   </select>
                 </div>
