@@ -39,7 +39,7 @@ function EditOne() {
     const isComplete = FIELDS.every((f) => (next[f.k] ?? "").trim().length >= 50);
     await supabase.from("reflections").update({ ...Object.fromEntries(FIELDS.map((f) => [f.k, next[f.k] ?? ""])), is_complete: isComplete }).eq("id", id);
     if (isComplete && !r?.is_complete) {
-      if (user && next.book_id) await ensureReviewCards(user.id, id, next.book_id);
+      if (user && r?.book_id) await ensureReviewCards(user.id, id, r.book_id);
       toast.success("Reflection complete");
     }
   }
