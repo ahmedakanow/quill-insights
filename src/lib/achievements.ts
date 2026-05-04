@@ -41,7 +41,8 @@ export async function checkAchievements(userId: string) {
   checks.push(["cross_connector", crossConnections >= 3]);
 
   const filledSections = (ps ?? []).filter((b) => (b.content ?? "").trim().length > 0).length;
-  checks.push(["statement_starter", filledSections >= 5]);
+  checks.push(["statement_starter", filledSections >= 3]);
+  checks.push(["interview_ready", (reviewCount ?? 0) >= 10]);
 
   // Total hours
   const totalMinutes = (sessions ?? []).reduce((s, x) => s + (x.duration_minutes ?? 0), 0);
