@@ -24,15 +24,17 @@ export function EmptyState({
       </div>
       <h3 className="font-display text-xl font-semibold">{title}</h3>
       <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">{message}</p>
+      {ctaLabel && ctaTo && (
+        <div className="mt-5 flex justify-center">
+          <Button asChild>
+            <Link to={ctaTo}>{ctaLabel}</Link>
+          </Button>
+        </div>
+      )}
       {estimatedTime && (
-        <p className="mx-auto mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground/80">
+        <p className="mx-auto mt-3 inline-flex items-center gap-1 text-xs text-muted-foreground/80">
           <Clock className="h-3 w-3" /> {estimatedTime}
         </p>
-      )}
-      {ctaLabel && ctaTo && (
-        <Button asChild className="mt-5">
-          <Link to={ctaTo}>{ctaLabel}</Link>
-        </Button>
       )}
     </div>
   );
