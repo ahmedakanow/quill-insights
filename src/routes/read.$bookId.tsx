@@ -12,6 +12,29 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/read/$bookId")({ component: Reader });
 
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function renderParagraphWithHighlights(para: string, annotations: any[]): string {
+  const matches = annotations.filter((a) => (a.type === "highlight" || a.type === "note") && a.selected_text && para.includes(a.selected_text));
+  if (matches.length === 0) return escapeHtml(para);
+  // Sort by length desc to avoid nested matches breaking
+  matches.sort((a, b) => b.selected_text.length - a.selected_text.length);
+  // Tokenize: split on each match text in order, replace with placeholders
+  let html = escapeHtml(para);
+  for (const a of matches) {
+    const safe = escapeHtml(a.selected_text);
+    const re = new RegExp(escapeRegex(safe), "g");
+    const cls = `hl-${a.color || "yellow"}`;
+    const title = a.note_content ? ` title="${escapeHtml(a.note_content)}"` : "";
+    html = html.replace(re, `<mark class="${cls} rounded px-0.5"${title}>${safe}</mark>`);
+  }
+  return html;
+}
+
 const COLORS = ["yellow", "green", "blue", "pink", "purple"] as const;
 const THEMES = [
   { k: "light", label: "Cream" },
