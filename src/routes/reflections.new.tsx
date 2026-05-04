@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { checkAchievements } from "@/lib/achievements";
+import { ensureReviewCards } from "@/lib/review-cards";
 import { z } from "zod";
 
 const FIELDS = [
@@ -56,9 +57,10 @@ function ReflectionEditor() {
     await supabase.from("reflections").update({ ...next, is_complete: isComplete }).eq("id", reflection.id);
     if (isComplete && !reflection.is_complete) {
       setReflection({ ...reflection, is_complete: true });
+      const newCards = await ensureReviewCards(user!.id, reflection.id, bookId!);
       const newly = await checkAchievements(user!.id);
       newly.forEach((t) => toast.success(`Achievement: ${t.replace(/_/g, " ")}`));
-      toast.success("Reflection complete");
+      toast.success(newCards > 0 ? `Reflection complete · ${newCards} review cards added` : "Reflection complete");
     }
   }
   function onChange(k: string, v: string) {
