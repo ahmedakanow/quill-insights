@@ -6,13 +6,14 @@ async function award(userId: string, type: string) {
 
 export async function checkAchievements(userId: string) {
   // Pull all the data we need
-  const [{ data: progress }, { data: reflections }, { data: ps }, { data: sessions }, { data: existing }] =
+  const [{ data: progress }, { data: reflections }, { data: ps }, { data: sessions }, { data: existing }, { count: reviewCount }] =
     await Promise.all([
       supabase.from("reading_progress").select("status, total_reading_minutes, book_id").eq("user_id", userId),
       supabase.from("reflections").select("*").eq("user_id", userId),
       supabase.from("personal_statement_blocks").select("section, content").eq("user_id", userId),
       supabase.from("reading_sessions").select("duration_minutes, session_date").eq("user_id", userId),
       supabase.from("achievements").select("achievement_type").eq("user_id", userId),
+      supabase.from("review_sessions").select("*", { count: "exact", head: true }).eq("user_id", userId),
     ]);
 
   const have = new Set((existing ?? []).map((a) => a.achievement_type));
