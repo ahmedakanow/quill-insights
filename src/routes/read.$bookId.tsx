@@ -365,6 +365,11 @@ function Reader() {
       {/* Selection toolbar */}
       {selection && (
         <div
+          // Prevent the toolbar (or any of its buttons) from stealing the
+          // text selection. Without this, mousedown on a swatch collapses
+          // the selection before our click handler runs and the highlighted
+          // appearance disappears mid-action.
+          onMouseDown={(e) => e.preventDefault()}
           className="fixed z-50 flex flex-col gap-1 rounded-lg border border-border bg-card p-2 shadow-warm-lg"
           style={{ left: Math.max(10, Math.min(window.innerWidth - 300, selection.x - 150)), top: Math.max(10, selection.y - 70) }}
         >
