@@ -219,7 +219,8 @@ function Reader() {
         style={{ maxWidth: `${width}px`, fontSize: `${fontSize}px`, lineHeight, fontFamily }}
       >
         {book.content_text.split("\n\n").map((para: string, i: number) => (
-          <p key={i} className="mb-6 whitespace-pre-line">{para}</p>
+          <p key={i} className="mb-6 whitespace-pre-line"
+            dangerouslySetInnerHTML={{ __html: renderParagraphWithHighlights(para, annotations) }} />
         ))}
 
         <div className="mt-12 flex justify-center">
