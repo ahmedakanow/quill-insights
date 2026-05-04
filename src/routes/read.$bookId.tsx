@@ -256,22 +256,42 @@ function Reader() {
       {/* Selection toolbar */}
       {selection && (
         <div
-          className="fixed z-50 flex items-center gap-1 rounded-lg border border-border bg-card p-1 shadow-warm-lg"
+          className="fixed z-50 flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-warm-lg"
           style={{ left: Math.max(10, Math.min(window.innerWidth - 280, selection.x - 140)), top: Math.max(10, selection.y - 50) }}
         >
-          {COLORS.map((c) => (
-            <button key={c} onClick={() => addAnnotation("highlight", c)}
-              className={`h-6 w-6 rounded-full hl-${c} border border-black/10`} title={`Highlight ${c}`} />
-          ))}
-          <span className="mx-1 h-5 w-px bg-border" />
-          <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Note"
-            onClick={() => { const n = prompt("Add a note"); if (n) addAnnotation("note", "yellow", n); }}>
-            <StickyNote className="h-4 w-4" />
-          </button>
-          <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Bookmark"
-            onClick={() => addAnnotation("bookmark")}>
-            <Bookmark className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {COLORS.map((c) => (
+              <button key={c} onClick={() => addAnnotation("highlight", c)}
+                className={`h-6 w-6 rounded-full hl-${c} border border-black/10`} title={`Highlight ${c}`} />
+            ))}
+            <span className="mx-1 h-5 w-px bg-border" />
+            <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Note"
+              onClick={() => setNoteDraft("")}>
+              <StickyNote className="h-4 w-4" />
+            </button>
+            <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Bookmark"
+              onClick={() => addAnnotation("bookmark")}>
+              <Bookmark className="h-4 w-4" />
+            </button>
+          </div>
+          {noteDraft !== null && (
+            <div className="flex flex-col gap-2 p-2 w-64">
+              <textarea
+                autoFocus
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                placeholder="Write a note…"
+                className="min-h-[72px] w-full resize-none rounded border border-border bg-background p-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setNoteDraft(null)}>Cancel</Button>
+                <Button size="sm" onClick={() => {
+                  if (noteDraft && noteDraft.trim()) addAnnotation("note", "yellow", noteDraft.trim());
+                  setNoteDraft(null);
+                }}>Save note</Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
