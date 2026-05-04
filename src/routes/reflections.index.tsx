@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { RequireAuth } from "@/components/require-auth";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
-import { Button } from "@/components/ui/button";
+import { ReflectionListSkeleton } from "@/components/skeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PenLine } from "lucide-react";
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/reflections/")({
 
 function ReflectionsList() {
   const { user } = useAuth();
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<any[] | null>(null);
   useEffect(() => {
     if (!user) return;
     supabase.from("reflections").select("*, books(title, author, cover_image_url)")
@@ -30,8 +30,17 @@ function ReflectionsList() {
           <p className="mt-1 text-sm text-muted-foreground">Five questions to turn reading into thinking.</p>
         </div>
       </div>
-      {items.length === 0 ? (
-        <EmptyState icon={PenLine} title="No reflections yet" message="Pick a finished book and write your first reflection." ctaLabel="Browse my books" ctaTo="/my-books" />
+      {items === null ? (
+        <ReflectionListSkeleton />
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon={PenLine}
+          title="No reflections yet"
+          message="Pick a finished book and write your first reflection. A good reflection takes about 10 minutes — it's the most valuable thing you can do in Quill."
+          ctaLabel="Browse my books"
+          ctaTo="/my-books"
+          estimatedTime="About 10 minutes per reflection."
+        />
       ) : (
         <ul className="space-y-3">
           {items.map((r) => (

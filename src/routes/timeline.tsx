@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { buildMilestones, daysBetween, formatMilestoneDate, nextMilestone, type Milestone } from "@/lib/timeline";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/timeline")({
@@ -15,12 +16,13 @@ export const Route = createFileRoute("/timeline")({
 function TimelinePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("year_group, interview_date").eq("id", user.id).maybeSingle()
-      .then(({ data }) => setProfile(data));
+      .then(({ data }) => { setProfile(data); setLoading(false); });
   }, [user]);
 
   const today = new Date();
@@ -28,6 +30,20 @@ function TimelinePage() {
   const milestones = buildMilestones(profile?.year_group, interviewDate, today);
   const next = nextMilestone(milestones, today);
   const nextDays = next ? daysBetween(today, new Date(next.date)) : null;
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 lg:px-8">
+        <h1 className="font-display text-3xl font-semibold">Admissions timeline</h1>
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 lg:px-8">

@@ -5,10 +5,12 @@ import { RequireAuth } from "@/components/require-auth";
 import { AppShell } from "@/components/app-shell";
 import { BookCard, type BookCardData } from "@/components/book-card";
 import { EmptyState } from "@/components/empty-state";
+import { BookGridSkeleton, StatCardSkeleton } from "@/components/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { getDailyQuote } from "@/lib/quill-data";
 import { buildMilestones, daysBetween, formatMilestoneDate, nextMilestone } from "@/lib/timeline";
-import { BookOpen, Brain, Check } from "lucide-react";
+import { BookOpen, Brain, Check, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,17 +18,27 @@ export const Route = createFileRoute("/dashboard")({
   component: () => <RequireAuth><AppShell><Dashboard /></AppShell></RequireAuth>,
 });
 
+const WELCOME_DISMISS_KEY = "quill-welcome-back-dismissed";
+
 function Dashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
-  const [reading, setReading] = useState<Array<BookCardData & { progress: number }>>([]);
+  const [reading, setReading] = useState<Array<BookCardData & { progress: number; last_read_at?: string }> | null>(null);
   const [recommended, setRecommended] = useState<BookCardData[]>([]);
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [weekDays, setWeekDays] = useState<boolean[]>([]);
-  const [stats, setStats] = useState({ finished: 0, reflections: 0, hours: 0 });
-  const [recentReflections, setRecentReflections] = useState<any[]>([]);
+  const [stats, setStats] = useState<{ finished: number; reflections: number; hours: number } | null>(null);
+  const [recentReflections, setRecentReflections] = useState<any[] | null>(null);
   const [dueReviews, setDueReviews] = useState(0);
+  const [lastActivity, setLastActivity] = useState<number | null>(null);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const quote = getDailyQuote();
+
+  useEffect(() => {
+    try {
+      setWelcomeDismissed(sessionStorage.getItem(WELCOME_DISMISS_KEY) === "1");
+    } catch {}
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -37,13 +49,23 @@ function Dashboard() {
       // Continue reading
       const { data: rp } = await supabase
         .from("reading_progress")
-        .select("scroll_position, books(*)")
+        .select("scroll_position, last_read_at, books(*)")
         .eq("user_id", user.id)
         .eq("status", "reading")
         .order("last_read_at", { ascending: false });
       setReading(
-        (rp ?? []).filter((r: any) => r.books).map((r: any) => ({ ...r.books, progress: r.scroll_position })),
+        (rp ?? []).filter((r: any) => r.books).map((r: any) => ({ ...r.books, progress: r.scroll_position, last_read_at: r.last_read_at })),
       );
+
+      // Last activity = newest last_read_at across all reading_progress rows
+      const { data: lastRp } = await supabase
+        .from("reading_progress")
+        .select("last_read_at")
+        .eq("user_id", user.id)
+        .order("last_read_at", { ascending: false })
+        .limit(1);
+      const ts = lastRp?.[0]?.last_read_at ? new Date(lastRp[0].last_read_at).getTime() : null;
+      setLastActivity(ts);
 
       // Recommendations: same subject, not started
       if (prof?.target_subject) {
@@ -107,20 +129,70 @@ function Dashboard() {
   const interviewDate = profile?.interview_date ? new Date(profile.interview_date) : null;
   const milestones = buildMilestones(profile?.year_group, interviewDate, today);
   const upcoming = nextMilestone(milestones, today);
-  // Show only the 4 nearest (last past + next 3 upcoming) for compactness
   const upcomingIdx = upcoming ? milestones.findIndex((m) => m.key === upcoming.key) : milestones.length;
   const tlStart = Math.max(0, upcomingIdx - 1);
   const tlSlice = milestones.slice(tlStart, tlStart + 4);
 
+  const daysAway = lastActivity ? Math.floor((Date.now() - lastActivity) / 86400000) : 0;
+  const showWelcomeBack = !welcomeDismissed && lastActivity !== null && daysAway >= 7;
+  const firstName = profile?.full_name?.split(" ")[0] ?? "";
+
+  function dismissWelcome() {
+    try { sessionStorage.setItem(WELCOME_DISMISS_KEY, "1"); } catch {}
+    setWelcomeDismissed(true);
+  }
+
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-8 lg:px-8">
+      {/* Welcome back card (inactive 7+ days) */}
+      {showWelcomeBack && reading && (
+        <section className="relative rounded-xl border-2 border-accent bg-gradient-to-br from-accent/10 to-transparent p-6 shadow-warm">
+          <button
+            onClick={dismissWelcome}
+            aria-label="Dismiss welcome card"
+            className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-accent">
+            <Sparkles className="h-3.5 w-3.5" /> Welcome back
+          </div>
+          <h2 className="mt-1 font-display text-2xl font-semibold">
+            Welcome back{firstName ? `, ${firstName}` : ""}
+          </h2>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            It's been a little while — no pressure. Here's an easy way to pick up where you left off.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {reading[0] && (
+              <Button asChild>
+                <Link to="/read/$bookId" params={{ bookId: reading[0].id }}>
+                  Continue {reading[0].title}
+                </Link>
+              </Button>
+            )}
+            {dueReviews > 0 && (
+              <Button variant="outline" asChild>
+                <Link to="/review">
+                  {dueReviews} review card{dueReviews === 1 ? "" : "s"} to catch up — start with just 5
+                </Link>
+              </Button>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Oxbridge Timeline */}
       <section className="rounded-xl border border-border bg-card p-6 shadow-warm">
         <div className="mb-4 flex items-baseline justify-between">
           <h2 className="font-display text-lg font-semibold">Oxbridge timeline</h2>
           <Link to="/timeline" className="text-xs text-accent underline-offset-4 hover:underline">View full timeline</Link>
         </div>
-        {!upcoming ? (
+        {profile === null ? (
+          <div className="grid gap-3 md:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
+          </div>
+        ) : !upcoming ? (
           <p className="text-sm text-muted-foreground">Offers season — good luck!</p>
         ) : (
           <div className="grid gap-3 md:grid-cols-4">
@@ -170,7 +242,7 @@ function Dashboard() {
       <section>
         <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
         <h1 className="mt-1 font-display text-3xl font-semibold md:text-4xl">
-          Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
+          Welcome back{firstName ? `, ${firstName}` : ""}.
         </h1>
         <blockquote className="mt-3 max-w-2xl border-l-2 border-accent pl-4 font-serif-reading italic text-muted-foreground">
           "{quote.text}" <span className="not-italic">— {quote.author}</span>
@@ -179,46 +251,77 @@ function Dashboard() {
 
       {/* Goal ring + week tracker */}
       <section className="grid gap-6 rounded-xl border border-border bg-card p-6 shadow-warm md:grid-cols-2">
-        <div className="flex items-center gap-6">
-          <div className="relative h-32 w-32">
-            <svg viewBox="0 0 128 128" className="h-32 w-32 -rotate-90">
-              <circle cx="64" cy="64" r="56" fill="none" stroke="currentColor" className="text-muted" strokeWidth="10" />
-              <circle cx="64" cy="64" r="56" fill="none" stroke="currentColor" className="text-accent" strokeWidth="10"
-                strokeDasharray={C} strokeDashoffset={C * (1 - pct)} strokeLinecap="round" />
-            </svg>
-            <div className="absolute inset-0 grid place-items-center text-center">
-              <div>
-                <div className="font-display text-2xl font-semibold">{Math.round(pct * 100)}%</div>
-                <div className="text-[10px] uppercase text-muted-foreground">today</div>
+        {profile === null ? (
+          <>
+            <div className="flex items-center gap-6">
+              <Skeleton className="h-32 w-32 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-7 w-40" />
               </div>
             </div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Today's reading goal</div>
-            <div className="font-display text-2xl font-semibold">{todayMinutes} of {goal} min</div>
-          </div>
-        </div>
-        <div>
-          <div className="text-sm text-muted-foreground">This week</div>
-          <div className="mt-3 flex items-center gap-3">
-            {weekDays.map((met, i) => {
-              const isToday = i === weekDays.length - 1;
-              return (
-                <div key={i} className="flex flex-col items-center gap-1">
-                  <div className={`h-7 w-7 rounded-full border-2 ${met ? "bg-accent border-accent" : "border-border"} ${isToday ? "ring-2 ring-accent/40 ring-offset-2 ring-offset-card" : ""}`} />
-                  <span className="text-[10px] text-muted-foreground">{["S","M","T","W","T","F","S"][(new Date().getDay() - 6 + i + 7) % 7]}</span>
+            <div className="space-y-3">
+              <Skeleton className="h-3 w-24" />
+              <div className="flex gap-3">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <Skeleton key={i} className="h-7 w-7 rounded-full" />
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-6">
+              <div className="relative h-32 w-32">
+                <svg viewBox="0 0 128 128" className="h-32 w-32 -rotate-90">
+                  <circle cx="64" cy="64" r="56" fill="none" stroke="currentColor" className="text-muted" strokeWidth="10" />
+                  <circle cx="64" cy="64" r="56" fill="none" stroke="currentColor" className="text-accent" strokeWidth="10"
+                    strokeDasharray={C} strokeDashoffset={C * (1 - pct)} strokeLinecap="round" />
+                </svg>
+                <div className="absolute inset-0 grid place-items-center text-center">
+                  <div>
+                    <div className="font-display text-2xl font-semibold">{Math.round(pct * 100)}%</div>
+                    <div className="text-[10px] uppercase text-muted-foreground">today</div>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Today's reading goal</div>
+                <div className="font-display text-2xl font-semibold">{todayMinutes} of {goal} min</div>
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">This week</div>
+              <div className="mt-3 flex items-center gap-3">
+                {weekDays.map((met, i) => {
+                  const isToday = i === weekDays.length - 1;
+                  return (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <div className={`h-7 w-7 rounded-full border-2 ${met ? "bg-accent border-accent" : "border-border"} ${isToday ? "ring-2 ring-accent/40 ring-offset-2 ring-offset-card" : ""}`} />
+                      <span className="text-[10px] text-muted-foreground">{["S","M","T","W","T","F","S"][(new Date().getDay() - 6 + i + 7) % 7]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
       </section>
 
       {/* Continue reading */}
       <section>
         <h2 className="mb-4 font-display text-2xl font-semibold">Continue reading</h2>
-        {reading.length === 0 ? (
-          <EmptyState icon={BookOpen} title="Nothing in progress" message="Pick a book from the library to start your reading practice." ctaLabel="Browse the library" ctaTo="/library" />
+        {reading === null ? (
+          <BookGridSkeleton count={4} />
+        ) : reading.length === 0 ? (
+          <EmptyState
+            icon={BookOpen}
+            title="Start your first book"
+            message="Pick a book from your subject's reading list — most students start with an accessible introduction."
+            ctaLabel="Browse the library"
+            ctaTo="/library"
+            estimatedTime="Takes about 15 minutes to get into."
+          />
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {reading.slice(0, 4).map((b) => (<BookCard key={b.id} book={b} status="reading" progress={b.progress} />))}
@@ -246,8 +349,27 @@ function Dashboard() {
           <h2 className="font-display text-2xl font-semibold">Recent reflections</h2>
           <Link to="/reflections" className="text-xs text-accent underline-offset-4 hover:underline">View all</Link>
         </div>
-        {recentReflections.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No reflections yet. Finish a book and write your first.</p>
+        {recentReflections === null ? (
+          <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="flex items-center justify-between p-4">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </li>
+            ))}
+          </ul>
+        ) : recentReflections.length === 0 ? (
+          <EmptyState
+            icon={BookOpen}
+            title="No reflections yet"
+            message="Finish a book and write your first reflection. Each one gives you 3 interview practice cards."
+            ctaLabel="Browse my books"
+            ctaTo="/my-books"
+            estimatedTime="About 10 minutes per reflection."
+          />
         ) : (
           <ul className="divide-y divide-border rounded-xl border border-border bg-card">
             {recentReflections.map((r) => (
@@ -267,17 +389,19 @@ function Dashboard() {
 
       {/* Stats */}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[
-          { l: "Books finished", v: stats.finished },
-          { l: "Reflections", v: stats.reflections },
-          { l: "Reading hours", v: stats.hours },
-          { l: "Daily goal", v: `${goal}m` },
-        ].map((s) => (
-          <div key={s.l} className="rounded-xl border border-border bg-card p-4 shadow-warm">
-            <div className="text-xs uppercase text-muted-foreground tracking-wide">{s.l}</div>
-            <div className="mt-1 font-display text-3xl font-semibold">{s.v}</div>
-          </div>
-        ))}
+        {stats === null
+          ? [0, 1, 2, 3].map((i) => <StatCardSkeleton key={i} />)
+          : [
+              { l: "Books finished", v: stats.finished },
+              { l: "Reflections", v: stats.reflections },
+              { l: "Reading hours", v: stats.hours },
+              { l: "Daily goal", v: `${goal}m` },
+            ].map((s) => (
+              <div key={s.l} className="rounded-xl border border-border bg-card p-4 shadow-warm">
+                <div className="text-xs uppercase text-muted-foreground tracking-wide">{s.l}</div>
+                <div className="mt-1 font-display text-3xl font-semibold">{s.v}</div>
+              </div>
+            ))}
       </section>
 
       <div className="flex justify-end">

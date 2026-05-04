@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, X, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, AlertOctagon } from "lucide-react";
+import { Plus, X, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, AlertOctagon, Check } from "lucide-react";
 import { RequireAuth } from "@/components/require-auth";
 import { AppShell } from "@/components/app-shell";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription,
 } from "@/components/ui/dialog";
+import { SaveStatusIndicator, LiveRegion, type SaveStatus } from "@/components/save-status";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PS_SECTIONS } from "@/lib/quill-data";
@@ -31,6 +32,9 @@ function PSPage() {
   const [progress, setProgress] = useState<any[]>([]);
   const [annotationsByBook, setAnnotationsByBook] = useState<Record<string, number>>({});
   const [reflectionsByBook, setReflectionsByBook] = useState<Record<string, any>>({});
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const timer = useRef<any>(null);
 
   useEffect(() => {
@@ -47,6 +51,7 @@ function PSPage() {
           };
         });
         setBlocks(m);
+        if ((data ?? []).length) { setSaveStatus("saved"); setSavedAt(Date.now()); }
       });
     supabase.from("reflections").select("id, argument_summary, interview_point, counterargument, book_id, books(title)")
       .eq("user_id", user.id).eq("is_complete", true).then(({ data }) => {
@@ -65,11 +70,12 @@ function PSPage() {
     });
   }, [user]);
 
-  async function persist(section: string, patch: Partial<Block>) {
+  async function persist(section: string, patch: Partial<Block>, opts: { announce?: boolean } = {}) {
     if (!user) return;
     const sec = PS_SECTIONS.find((s) => s.key === section)!;
     const current = blocks[section] ?? { content: "", linked_reflection_ids: [] };
     const merged = { ...current, ...patch };
+    setSaveStatus("saving");
     await supabase.from("personal_statement_blocks").upsert({
       user_id: user.id,
       section,
@@ -77,12 +83,16 @@ function PSPage() {
       linked_reflection_ids: merged.linked_reflection_ids,
       sort_order: sec.order,
     }, { onConflict: "user_id,section" });
+    setSaveStatus("saved");
+    setSavedAt(Date.now());
+    if (opts.announce !== false) setAnnouncement("Personal statement saved");
     const newly = await checkAchievements(user.id);
     newly.forEach((t) => toast.success(`Achievement: ${t.replace(/_/g, " ")}`));
   }
 
   function onChange(section: string, v: string) {
     setBlocks((b) => ({ ...b, [section]: { ...b[section], content: v } }));
+    setSaveStatus("dirty");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => persist(section, { content: v }), 800);
   }
@@ -94,12 +104,21 @@ function PSPage() {
       : [...cur, reflectionId];
     setBlocks((b) => ({ ...b, [section]: { ...b[section], linked_reflection_ids: next } }));
     await persist(section, { linked_reflection_ids: next });
-    toast.success(cur.includes(reflectionId) ? "Reflection unlinked" : "Reflection linked");
   }
 
   const totalChars = Object.values(blocks).reduce((s, b) => s + (b?.content?.length ?? 0), 0);
   const target = 4000;
   const minPerSection = 350;
+  const remaining = target - totalChars;
+  const overLimit = totalChars > target;
+
+  const counterColor = overLimit
+    ? "text-rose-700 dark:text-rose-400"
+    : remaining < 100
+      ? "text-rose-700 dark:text-rose-400"
+      : remaining < 500
+        ? "text-amber-700 dark:text-amber-400"
+        : "text-muted-foreground";
 
   function exportText() {
     const text = PS_SECTIONS.map((s) => `## ${s.label}\n\n${blocks[s.key]?.content ?? ""}`).join("\n\n");
@@ -144,21 +163,40 @@ function PSPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 lg:px-8">
-      <div className="flex items-end justify-between">
+      <LiveRegion message={announcement} />
+      <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold">Personal statement</h1>
           <p className="mt-1 text-sm text-muted-foreground">Three sections — UCAS format. Build it from your reading.</p>
         </div>
-        <Button variant="outline" onClick={exportText}>Copy to clipboard</Button>
+        <div className="flex items-center gap-3">
+          <SaveStatusIndicator status={saveStatus} savedAt={savedAt} />
+          <Button variant="outline" onClick={exportText}>Copy to clipboard</Button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-4 shadow-warm">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">{totalChars} / {target} characters</span>
-          <span className="text-xs text-muted-foreground">~{Math.round(totalChars / 6.5)} words</span>
+          <span className={counterColor}>
+            {overLimit
+              ? `${totalChars - target} characters over limit`
+              : `${remaining.toLocaleString()} characters remaining`}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {totalChars.toLocaleString()} / {target.toLocaleString()} · ~{Math.round(totalChars / 6.5)} words
+          </span>
         </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className="h-full bg-accent transition-quill" style={{ width: `${Math.min(100, (totalChars / target) * 100)}%` }} />
+        <div className={cn(
+          "mt-2 h-1.5 overflow-hidden rounded-full bg-muted",
+          overLimit && "ring-2 ring-rose-500",
+        )}>
+          <div
+            className={cn(
+              "h-full transition-quill",
+              overLimit ? "bg-rose-500" : remaining < 100 ? "bg-rose-500" : remaining < 500 ? "bg-amber-500" : "bg-accent",
+            )}
+            style={{ width: `${Math.min(100, (totalChars / target) * 100)}%` }}
+          />
         </div>
       </div>
 
@@ -221,28 +259,33 @@ function PSPage() {
         const linked = reflections.filter((r) => linkedIds.includes(r.id));
         const content = blocks[s.key]?.content ?? "";
         const len = content.length;
-        const tooShort = len > 0 && len < minPerSection;
+        const meets = len >= minPerSection;
+        const needed = Math.max(0, minPerSection - len);
         return (
           <div key={s.key} className="grid gap-4 md:grid-cols-[1fr_240px]">
             <div className="rounded-xl border border-border bg-card p-5 shadow-warm">
               <div className="flex items-start justify-between gap-2">
                 <h2 className="font-display text-xl font-semibold">{s.label}</h2>
-                {tooShort && (
-                  <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                    Below {minPerSection} chars
-                  </span>
-                )}
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">{s.prompt}</p>
               <Textarea
                 value={content}
                 onChange={(e) => onChange(s.key, e.target.value)}
-                onBlur={() => persist(s.key, { content })}
+                onBlur={() => persist(s.key, { content }, { announce: false })}
                 rows={8}
                 className="mt-3 font-serif-reading text-base"
               />
-              <div className="mt-1 flex justify-end text-[11px] text-muted-foreground">
-                {len} chars · min {minPerSection}
+              <div className="mt-2 flex items-center justify-between text-[11px]">
+                {meets ? (
+                  <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                    <Check className="h-3 w-3" /> Minimum met
+                  </span>
+                ) : len === 0 ? (
+                  <span className="text-muted-foreground">Aim for {minPerSection}+ characters.</span>
+                ) : (
+                  <span className="text-amber-700 dark:text-amber-400">{needed} more characters needed</span>
+                )}
+                <span className="text-muted-foreground">{len} chars</span>
               </div>
             </div>
             <aside className="rounded-xl border border-dashed border-border bg-card/40 p-3 text-xs">

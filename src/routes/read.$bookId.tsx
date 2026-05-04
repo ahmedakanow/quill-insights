@@ -1,11 +1,13 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Settings, Highlighter, StickyNote, Bookmark, BookCheck } from "lucide-react";
+import { ArrowLeft, Settings, StickyNote, Bookmark, BookCheck, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { checkAchievements } from "@/lib/achievements";
 import { cn } from "@/lib/utils";
@@ -21,9 +23,7 @@ function escapeRegex(s: string) {
 function renderParagraphWithHighlights(para: string, annotations: any[]): string {
   const matches = annotations.filter((a) => (a.type === "highlight" || a.type === "note") && a.selected_text && para.includes(a.selected_text));
   if (matches.length === 0) return escapeHtml(para);
-  // Sort by length desc to avoid nested matches breaking
   matches.sort((a, b) => b.selected_text.length - a.selected_text.length);
-  // Tokenize: split on each match text in order, replace with placeholders
   let html = escapeHtml(para);
   for (const a of matches) {
     const safe = escapeHtml(a.selected_text);
@@ -43,6 +43,13 @@ const THEMES = [
   { k: "contrast", label: "Contrast" },
 ] as const;
 
+const SHORTCUTS: Array<[string, string]> = [
+  ["Esc", "Back to book detail"],
+  ["↓ / J", "Scroll down one paragraph"],
+  ["↑ / K", "Scroll up one paragraph"],
+  ["?", "Show this help"],
+];
+
 function Reader() {
   const { bookId } = Route.useParams();
   const { user } = useAuth();
@@ -52,18 +59,17 @@ function Reader() {
   const [scrollPct, setScrollPct] = useState(0);
   const [selection, setSelection] = useState<{ text: string; pct: number; x: number; y: number } | null>(null);
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
-  const [width, setWidth] = useState(720);
+  const [widthCh, setWidthCh] = useState(65);
   const [theme, setTheme] = useState<typeof THEMES[number]["k"]>("light");
   const [fontFamily, setFontFamily] = useState("var(--font-serif)");
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const sessionStart = useRef(Date.now());
   const lastFlush = useRef(Date.now());
 
-  // Load preferences
   useEffect(() => {
     const p = localStorage.getItem("quill-reader-prefs");
     if (p) {
@@ -71,15 +77,16 @@ function Reader() {
         const v = JSON.parse(p);
         if (v.fontSize) setFontSize(v.fontSize);
         if (v.lineHeight) setLineHeight(v.lineHeight);
-        if (v.width) setWidth(v.width);
+        if (v.widthCh) setWidthCh(v.widthCh);
+        else if (v.width) setWidthCh(Math.round(v.width / 11)); // legacy px → approx ch
         if (v.theme) setTheme(v.theme);
         if (v.fontFamily) setFontFamily(v.fontFamily);
       } catch {}
     }
   }, []);
   useEffect(() => {
-    localStorage.setItem("quill-reader-prefs", JSON.stringify({ fontSize, lineHeight, width, theme, fontFamily }));
-  }, [fontSize, lineHeight, width, theme, fontFamily]);
+    localStorage.setItem("quill-reader-prefs", JSON.stringify({ fontSize, lineHeight, widthCh, theme, fontFamily }));
+  }, [fontSize, lineHeight, widthCh, theme, fontFamily]);
 
   useEffect(() => {
     supabase.from("books").select("*").eq("id", bookId).maybeSingle().then(({ data }) => setBook(data));
@@ -97,7 +104,6 @@ function Reader() {
     }
   }, [bookId, user]);
 
-  // Track scroll position
   useEffect(() => {
     const onScroll = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
@@ -109,7 +115,6 @@ function Reader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [book]);
 
-  // Save reading session every 60s
   useEffect(() => {
     if (!user) return;
     const flush = async () => {
@@ -135,7 +140,31 @@ function Reader() {
     return () => { clearInterval(id); flush(); };
   }, [user, bookId, scrollPct]);
 
-  // Selection handler
+  // Keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && /input|textarea|select/i.test(e.target.tagName)) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        nav({ to: "/book/$bookId", params: { bookId } });
+        return;
+      }
+      const step = Math.round(parseFloat(getComputedStyle(document.body).fontSize || "16") * lineHeight * 4);
+      if (e.key === "ArrowDown" || e.key === "j" || e.key === "J") {
+        e.preventDefault();
+        window.scrollBy({ top: step, behavior: "smooth" });
+      } else if (e.key === "ArrowUp" || e.key === "k" || e.key === "K") {
+        e.preventDefault();
+        window.scrollBy({ top: -step, behavior: "smooth" });
+      } else if (e.key === "?") {
+        e.preventDefault();
+        setHelpOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [bookId, nav, lineHeight]);
+
   const onMouseUp = () => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) { setSelection(null); return; }
@@ -172,7 +201,18 @@ function Reader() {
     nav({ to: "/book/$bookId", params: { bookId } });
   }
 
-  if (!book) return <div className="grid min-h-screen place-items-center">Loading…</div>;
+  if (!book) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-2xl space-y-4 px-6 py-16">
+          <h1 className="sr-only">Loading book</h1>
+          {["w-full", "w-11/12", "w-10/12", "w-full", "w-9/12", "w-11/12", "w-8/12", "w-10/12"].map((w, i) => (
+            <Skeleton key={i} className={`h-4 ${w}`} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen reader-theme-${theme} paper-grain`}>
@@ -184,14 +224,48 @@ function Reader() {
       {/* Top bar */}
       <header className="sticky top-0 z-30 border-b border-black/5 bg-inherit/80 backdrop-blur">
         <div className="mx-auto flex h-12 max-w-5xl items-center gap-3 px-4">
-          <button onClick={() => nav({ to: "/book/$bookId", params: { bookId } })} className="grid h-8 w-8 place-items-center rounded hover:bg-black/5">
+          <button
+            onClick={() => nav({ to: "/book/$bookId", params: { bookId } })}
+            aria-label="Back to book detail"
+            className="grid min-h-[44px] min-w-[44px] place-items-center rounded hover:bg-black/5"
+          >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <div className="flex-1 truncate text-center font-display text-sm">{book.title}</div>
+          <h1 className="flex-1 truncate text-center font-display text-sm">{book.title}</h1>
           <div className="text-xs opacity-70">{Math.round(scrollPct * 100)}%</div>
+          <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+            <DialogTrigger asChild>
+              <button
+                aria-label="Keyboard shortcuts"
+                className="grid min-h-[44px] min-w-[44px] place-items-center rounded hover:bg-black/5"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm">
+              <DialogHeader><DialogTitle>Keyboard shortcuts</DialogTitle></DialogHeader>
+              <table className="w-full text-sm">
+                <tbody>
+                  {SHORTCUTS.map(([key, action]) => (
+                    <tr key={key} className="border-b border-border last:border-0">
+                      <td className="py-2 pr-4">
+                        <kbd className="rounded border border-border bg-muted px-2 py-0.5 font-mono text-xs">{key}</kbd>
+                      </td>
+                      <td className="py-2 text-muted-foreground">{action}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DialogContent>
+          </Dialog>
           <Sheet>
             <SheetTrigger asChild>
-              <button className="grid h-8 w-8 place-items-center rounded hover:bg-black/5"><Settings className="h-4 w-4" /></button>
+              <button
+                aria-label="Reading settings"
+                className="grid min-h-[44px] min-w-[44px] place-items-center rounded hover:bg-black/5"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
             </SheetTrigger>
             <SheetContent>
               <SheetHeader><SheetTitle>Reading settings</SheetTitle></SheetHeader>
@@ -205,8 +279,8 @@ function Reader() {
                   <Slider value={[lineHeight * 10]} min={14} max={24} step={1} onValueChange={(v) => setLineHeight(v[0] / 10)} />
                 </div>
                 <div>
-                  <div className="mb-2 font-medium">Width: {width}px</div>
-                  <Slider value={[width]} min={480} max={800} step={20} onValueChange={(v) => setWidth(v[0])} />
+                  <div className="mb-2 font-medium">Width: {widthCh} characters</div>
+                  <Slider value={[widthCh]} min={45} max={90} step={1} onValueChange={(v) => setWidthCh(v[0])} />
                 </div>
                 <div>
                   <div className="mb-2 font-medium">Font</div>
@@ -237,14 +311,27 @@ function Reader() {
       {/* Reading column */}
       <article
         ref={containerRef}
+        lang="en"
         onMouseUp={onMouseUp}
         onTouchEnd={onMouseUp}
-        className="mx-auto px-6 py-12 font-serif-reading"
-        style={{ maxWidth: `${width}px`, fontSize: `${fontSize}px`, lineHeight, fontFamily }}
+        className="mx-auto px-6 py-12 font-serif-reading reading-column"
+        style={{
+          maxWidth: `${widthCh}ch`,
+          fontSize: `${fontSize}px`,
+          lineHeight,
+          fontFamily,
+          textRendering: "optimizeLegibility",
+          fontFeatureSettings: '"liga", "kern"',
+          hyphens: "auto",
+        }}
       >
         {book.content_text.split("\n\n").map((para: string, i: number) => (
-          <p key={i} className="mb-6 whitespace-pre-line"
-            dangerouslySetInnerHTML={{ __html: renderParagraphWithHighlights(para, annotations) }} />
+          <p
+            key={i}
+            className="whitespace-pre-line"
+            style={{ marginBottom: "1.5em" }}
+            dangerouslySetInnerHTML={{ __html: renderParagraphWithHighlights(para, annotations) }}
+          />
         ))}
 
         <div className="mt-12 flex justify-center">
@@ -263,14 +350,17 @@ function Reader() {
           <div className="flex items-center gap-1">
             {COLORS.map((c) => (
               <button key={c} onClick={() => addAnnotation("highlight", c)}
-                className={`h-6 w-6 rounded-full hl-${c} border border-black/10`} title={`Highlight ${c}`} />
+                aria-label={`Highlight ${c}`}
+                className={`hl-swatch h-6 w-6 rounded-full hl-${c} border border-black/10`} title={`Highlight ${c}`} />
             ))}
             <span className="mx-1 h-5 w-px bg-border" />
-            <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Note"
+            <button className="grid min-h-[36px] min-w-[36px] place-items-center rounded hover:bg-muted" title="Note"
+              aria-label="Add note"
               onClick={() => setNoteDraft("")}>
               <StickyNote className="h-4 w-4" />
             </button>
-            <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Bookmark"
+            <button className="grid min-h-[36px] min-w-[36px] place-items-center rounded hover:bg-muted" title="Bookmark"
+              aria-label="Bookmark"
               onClick={() => addAnnotation("bookmark")}>
               <Bookmark className="h-4 w-4" />
             </button>

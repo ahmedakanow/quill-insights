@@ -212,3 +212,24 @@
 
 /* Smooth, understated transitions */
 .transition-quill { transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .transition-quill { transition: none !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Larger highlight color swatches on small screens */
+@media (max-width: 640px) {
+  .hl-swatch { height: 2rem !important; width: 2rem !important; }
+}
+
+/* Programmatically-focused H1 should not show a focus ring */
+h1:focus { outline: none; }

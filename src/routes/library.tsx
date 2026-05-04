@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Search } from "lucide-react";
+import { BookGridSkeleton } from "@/components/skeletons";
 
 export const Route = createFileRoute("/library")({
   component: () => <RequireAuth><AppShell><LibraryPage /></AppShell></RequireAuth>,
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/library")({
 
 function LibraryPage() {
   const { user } = useAuth();
-  const [books, setBooks] = useState<BookCardData[]>([]);
+  const [books, setBooks] = useState<BookCardData[] | null>(null);
   const [progress, setProgress] = useState<Record<string, string>>({});
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
@@ -36,7 +37,7 @@ function LibraryPage() {
   }, [user]);
 
   const filtered = useMemo(() => {
-    let list = books;
+    let list = books ?? [];
     if (q) {
       const ql = q.toLowerCase();
       list = list.filter((b) => b.title.toLowerCase().includes(ql) || b.author.toLowerCase().includes(ql));
@@ -75,11 +76,15 @@ function LibraryPage() {
         </TabsList>
       </Tabs>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-        {filtered.map((b) => (
-          <BookCard key={b.id} book={b} status={progress[b.id] as any} />
-        ))}
-      </div>
+      {books === null ? (
+        <BookGridSkeleton count={8} />
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          {filtered.map((b) => (
+            <BookCard key={b.id} book={b} status={progress[b.id] as any} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
