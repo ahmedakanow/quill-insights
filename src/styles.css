@@ -207,6 +207,17 @@
 .dark .hl-pink   { background-color: rgba(230, 150, 180, 0.30); }
 .dark .hl-purple { background-color: rgba(180, 150, 220, 0.30); }
 
+/* Make the active text selection in the reading column highly visible so
+   users can see exactly what they're about to highlight. */
+.reading-column ::selection {
+  background-color: rgba(255, 200, 60, 0.55);
+  color: inherit;
+}
+.reader-theme-dark .reading-column ::selection,
+.dark .reading-column ::selection {
+  background-color: rgba(255, 200, 60, 0.45);
+}
+
 .shadow-warm { box-shadow: var(--shadow-warm); }
 .shadow-warm-lg { box-shadow: var(--shadow-warm-lg); }
 
