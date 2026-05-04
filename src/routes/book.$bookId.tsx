@@ -4,6 +4,7 @@ import { RequireAuth } from "@/components/require-auth";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { categoryLabel, difficultyClass } from "@/lib/quill-data";
@@ -50,7 +51,36 @@ function BookDetail() {
     toast.success("Added to your list");
   }
 
-  if (!book) return <div className="mx-auto max-w-5xl p-8 text-muted-foreground">Loading…</div>;
+  if (!book) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8 lg:px-8">
+        <h1 className="sr-only">Loading book</h1>
+        <div className="grid gap-8 md:grid-cols-[260px_1fr]">
+          <Skeleton className="aspect-[2/3] w-full rounded-lg" />
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-3/4" />
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-3 w-1/4" />
+            <div className="flex gap-2 pt-2">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-5 w-24 rounded-full" />
+            </div>
+            <div className="space-y-2 pt-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-11/12" />
+              <Skeleton className="h-4 w-10/12" />
+              <Skeleton className="h-4 w-9/12" />
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Skeleton className="h-9 w-32" />
+              <Skeleton className="h-9 w-28" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-8 lg:px-8">
