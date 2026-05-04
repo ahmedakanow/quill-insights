@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouteFocus } from "@/hooks/use-route-focus";
 import {
   LayoutDashboard,
   Library,
@@ -45,6 +46,7 @@ const MOBILE_NAV = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { user, signOut } = useAuth();
+  useRouteFocus();
   const initial = (user?.email ?? "Q").slice(0, 1).toUpperCase();
 
   return (
@@ -106,7 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* Main */}
-        <main className="min-w-0 flex-1 pb-20 md:pb-8">{children}</main>
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 pb-20 md:pb-8">{children}</main>
       </div>
 
       {/* Mobile bottom nav */}
@@ -119,7 +121,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={n.to}
                 to={n.to}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium",
+                  "flex min-h-[48px] w-full flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium",
                   active ? "text-accent" : "text-muted-foreground",
                 )}
               >
