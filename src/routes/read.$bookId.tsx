@@ -12,6 +12,29 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/read/$bookId")({ component: Reader });
 
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function renderParagraphWithHighlights(para: string, annotations: any[]): string {
+  const matches = annotations.filter((a) => (a.type === "highlight" || a.type === "note") && a.selected_text && para.includes(a.selected_text));
+  if (matches.length === 0) return escapeHtml(para);
+  // Sort by length desc to avoid nested matches breaking
+  matches.sort((a, b) => b.selected_text.length - a.selected_text.length);
+  // Tokenize: split on each match text in order, replace with placeholders
+  let html = escapeHtml(para);
+  for (const a of matches) {
+    const safe = escapeHtml(a.selected_text);
+    const re = new RegExp(escapeRegex(safe), "g");
+    const cls = `hl-${a.color || "yellow"}`;
+    const title = a.note_content ? ` title="${escapeHtml(a.note_content)}"` : "";
+    html = html.replace(re, `<mark class="${cls} rounded px-0.5"${title}>${safe}</mark>`);
+  }
+  return html;
+}
+
 const COLORS = ["yellow", "green", "blue", "pink", "purple"] as const;
 const THEMES = [
   { k: "light", label: "Cream" },
@@ -28,6 +51,7 @@ function Reader() {
   const [annotations, setAnnotations] = useState<any[]>([]);
   const [scrollPct, setScrollPct] = useState(0);
   const [selection, setSelection] = useState<{ text: string; pct: number; x: number; y: number } | null>(null);
+  const [noteDraft, setNoteDraft] = useState<string | null>(null);
 
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
@@ -97,9 +121,14 @@ function Reader() {
         user_id: user.id, book_id: bookId, duration_minutes: min,
         session_date: new Date().toISOString().slice(0, 10),
       });
+      const { data: existing } = await supabase
+        .from("reading_progress")
+        .select("total_reading_minutes")
+        .eq("user_id", user.id).eq("book_id", bookId).maybeSingle();
+      const newTotal = (existing?.total_reading_minutes ?? 0) + min;
       await supabase.from("reading_progress").update({
         scroll_position: scrollPct, last_read_at: new Date().toISOString(),
-        total_reading_minutes: undefined,
+        total_reading_minutes: newTotal,
       }).eq("user_id", user.id).eq("book_id", bookId);
     };
     const id = setInterval(flush, 60000);
@@ -213,7 +242,8 @@ function Reader() {
         style={{ maxWidth: `${width}px`, fontSize: `${fontSize}px`, lineHeight, fontFamily }}
       >
         {book.content_text.split("\n\n").map((para: string, i: number) => (
-          <p key={i} className="mb-6 whitespace-pre-line">{para}</p>
+          <p key={i} className="mb-6 whitespace-pre-line"
+            dangerouslySetInnerHTML={{ __html: renderParagraphWithHighlights(para, annotations) }} />
         ))}
 
         <div className="mt-12 flex justify-center">
@@ -226,22 +256,42 @@ function Reader() {
       {/* Selection toolbar */}
       {selection && (
         <div
-          className="fixed z-50 flex items-center gap-1 rounded-lg border border-border bg-card p-1 shadow-warm-lg"
+          className="fixed z-50 flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-warm-lg"
           style={{ left: Math.max(10, Math.min(window.innerWidth - 280, selection.x - 140)), top: Math.max(10, selection.y - 50) }}
         >
-          {COLORS.map((c) => (
-            <button key={c} onClick={() => addAnnotation("highlight", c)}
-              className={`h-6 w-6 rounded-full hl-${c} border border-black/10`} title={`Highlight ${c}`} />
-          ))}
-          <span className="mx-1 h-5 w-px bg-border" />
-          <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Note"
-            onClick={() => { const n = prompt("Add a note"); if (n) addAnnotation("note", "yellow", n); }}>
-            <StickyNote className="h-4 w-4" />
-          </button>
-          <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Bookmark"
-            onClick={() => addAnnotation("bookmark")}>
-            <Bookmark className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {COLORS.map((c) => (
+              <button key={c} onClick={() => addAnnotation("highlight", c)}
+                className={`h-6 w-6 rounded-full hl-${c} border border-black/10`} title={`Highlight ${c}`} />
+            ))}
+            <span className="mx-1 h-5 w-px bg-border" />
+            <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Note"
+              onClick={() => setNoteDraft("")}>
+              <StickyNote className="h-4 w-4" />
+            </button>
+            <button className="grid h-7 w-7 place-items-center rounded hover:bg-muted" title="Bookmark"
+              onClick={() => addAnnotation("bookmark")}>
+              <Bookmark className="h-4 w-4" />
+            </button>
+          </div>
+          {noteDraft !== null && (
+            <div className="flex flex-col gap-2 p-2 w-64">
+              <textarea
+                autoFocus
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                placeholder="Write a note…"
+                className="min-h-[72px] w-full resize-none rounded border border-border bg-background p-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setNoteDraft(null)}>Cancel</Button>
+                <Button size="sm" onClick={() => {
+                  if (noteDraft && noteDraft.trim()) addAnnotation("note", "yellow", noteDraft.trim());
+                  setNoteDraft(null);
+                }}>Save note</Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
