@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PS_SECTIONS } from "@/lib/quill-data";
 import { toast } from "sonner";
 import { checkAchievements } from "@/lib/achievements";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/personal-statement")({
   component: () => <RequireAuth><AppShell><PSPage /></AppShell></RequireAuth>,
