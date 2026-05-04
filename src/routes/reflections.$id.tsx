@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { ensureReviewCards } from "@/lib/review-cards";
 
 const FIELDS = [
   { k: "argument_summary", label: "What did the author argue?" },
@@ -37,7 +38,10 @@ function EditOne() {
   async function save(next: any) {
     const isComplete = FIELDS.every((f) => (next[f.k] ?? "").trim().length >= 50);
     await supabase.from("reflections").update({ ...Object.fromEntries(FIELDS.map((f) => [f.k, next[f.k] ?? ""])), is_complete: isComplete }).eq("id", id);
-    if (isComplete && !r?.is_complete) toast.success("Reflection complete");
+    if (isComplete && !r?.is_complete) {
+      if (user && r?.book_id) await ensureReviewCards(user.id, id, r.book_id);
+      toast.success("Reflection complete");
+    }
   }
   function onChange(k: string, v: string) {
     const n = { ...r, [k]: v }; setR(n);

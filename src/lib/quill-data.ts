@@ -48,6 +48,9 @@ export const DAILY_QUOTES = [
     text: "I have learned, in whatsoever state I am, therewith to be content.",
     author: "Saint Paul, quoted in the Cambridge college graces",
   },
+  { text: "Take your time and consider your answers. Speed of response won't impress.", author: "Oxford admissions guidance" },
+  { text: "We examine applicants' thinking skills and ability to solve problems.", author: "Cambridge Homerton, Admissions Tutor" },
+  { text: "Your experience of activities and your reflections are more important than the number.", author: "Cambridge admissions guidance" },
 ];
 
 export const ACHIEVEMENT_DEFS: Record<
@@ -99,38 +102,36 @@ export const ACHIEVEMENT_DEFS: Record<
     description: "Read for 100 total hours.",
     icon: "Clock",
   },
+  interview_ready: {
+    title: "Interview Ready",
+    description: "Complete 10 daily review sessions.",
+    icon: "GraduationCap",
+  },
+  risk_free: {
+    title: "Risk Free",
+    description: "All books mentioned in your personal statement pass the risk audit.",
+    icon: "ShieldCheck",
+  },
 };
 
 export const PS_SECTIONS = [
   {
-    key: "hook" as const,
-    label: "Hook",
-    prompt: "Open with a moment that sparked your intellectual curiosity.",
+    key: "motivation" as const,
+    label: "Why this subject?",
+    prompt: "What sparked your interest? What reading, experiences, or ideas drew you to this subject?",
     order: 0,
   },
   {
-    key: "subject_engagement_a" as const,
-    label: "Subject Engagement A",
-    prompt: "Your deepest area of reading and thinking.",
+    key: "studies_preparation" as const,
+    label: "How have your studies prepared you?",
+    prompt: "What have you learned from your A-Levels, coursework, or EPQ that prepares you for university-level study?",
     order: 1,
   },
   {
-    key: "subject_engagement_b" as const,
-    label: "Subject Engagement B",
-    prompt: "A second thread showing breadth.",
+    key: "outside_preparation" as const,
+    label: "What else have you done?",
+    prompt: "Super-curricular reading, lectures, podcasts, essay competitions — and what you learned from them.",
     order: 2,
-  },
-  {
-    key: "skills_and_growth" as const,
-    label: "Skills & Growth",
-    prompt: "What has your reading taught you about how you think?",
-    order: 3,
-  },
-  {
-    key: "conclusion" as const,
-    label: "Conclusion",
-    prompt: "Why this subject, at this level, now?",
-    order: 4,
   },
 ];
 

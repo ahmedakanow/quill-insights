@@ -195,6 +195,7 @@ export type Database = {
           daily_reading_goal_minutes: number
           full_name: string | null
           id: string
+          interview_date: string | null
           target_college: string | null
           target_subject: string | null
           target_university: string | null
@@ -206,6 +207,7 @@ export type Database = {
           daily_reading_goal_minutes?: number
           full_name?: string | null
           id: string
+          interview_date?: string | null
           target_college?: string | null
           target_subject?: string | null
           target_university?: string | null
@@ -217,6 +219,7 @@ export type Database = {
           daily_reading_goal_minutes?: number
           full_name?: string | null
           id?: string
+          interview_date?: string | null
           target_college?: string | null
           target_subject?: string | null
           target_university?: string | null
@@ -377,6 +380,98 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_cards: {
+        Row: {
+          book_id: string
+          card_type: string
+          created_at: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          last_reviewed_at: string | null
+          next_review_date: string
+          prompt_text: string
+          reflection_id: string
+          repetitions: number
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          card_type: string
+          created_at?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          last_reviewed_at?: string | null
+          next_review_date?: string
+          prompt_text: string
+          reflection_id: string
+          repetitions?: number
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          card_type?: string
+          created_at?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          last_reviewed_at?: string | null
+          next_review_date?: string
+          prompt_text?: string
+          reflection_id?: string
+          repetitions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_cards_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_cards_reflection_id_fkey"
+            columns: ["reflection_id"]
+            isOneToOne: false
+            referencedRelation: "reflections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_sessions: {
+        Row: {
+          card_id: string
+          id: string
+          quality: number
+          reviewed_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          id?: string
+          quality: number
+          reviewed_at?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          id?: string
+          quality?: number
+          reviewed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_sessions_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "review_cards"
             referencedColumns: ["id"]
           },
         ]

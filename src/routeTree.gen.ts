@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReviewRouteImport } from './routes/review'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PersonalStatementRouteImport } from './routes/personal-statement'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -25,9 +27,19 @@ import { Route as ReflectionsIdRouteImport } from './routes/reflections.$id'
 import { Route as ReadBookIdRouteImport } from './routes/read.$bookId'
 import { Route as BookBookIdRouteImport } from './routes/book.$bookId'
 
+const TimelineRoute = TimelineRouteImport.update({
+  id: '/timeline',
+  path: '/timeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -111,7 +123,9 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/personal-statement': typeof PersonalStatementRoute
   '/register': typeof RegisterRoute
+  '/review': typeof ReviewRoute
   '/settings': typeof SettingsRoute
+  '/timeline': typeof TimelineRoute
   '/book/$bookId': typeof BookBookIdRoute
   '/read/$bookId': typeof ReadBookIdRoute
   '/reflections/$id': typeof ReflectionsIdRoute
@@ -128,7 +142,9 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/personal-statement': typeof PersonalStatementRoute
   '/register': typeof RegisterRoute
+  '/review': typeof ReviewRoute
   '/settings': typeof SettingsRoute
+  '/timeline': typeof TimelineRoute
   '/book/$bookId': typeof BookBookIdRoute
   '/read/$bookId': typeof ReadBookIdRoute
   '/reflections/$id': typeof ReflectionsIdRoute
@@ -146,7 +162,9 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/personal-statement': typeof PersonalStatementRoute
   '/register': typeof RegisterRoute
+  '/review': typeof ReviewRoute
   '/settings': typeof SettingsRoute
+  '/timeline': typeof TimelineRoute
   '/book/$bookId': typeof BookBookIdRoute
   '/read/$bookId': typeof ReadBookIdRoute
   '/reflections/$id': typeof ReflectionsIdRoute
@@ -165,7 +183,9 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/personal-statement'
     | '/register'
+    | '/review'
     | '/settings'
+    | '/timeline'
     | '/book/$bookId'
     | '/read/$bookId'
     | '/reflections/$id'
@@ -182,7 +202,9 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/personal-statement'
     | '/register'
+    | '/review'
     | '/settings'
+    | '/timeline'
     | '/book/$bookId'
     | '/read/$bookId'
     | '/reflections/$id'
@@ -199,7 +221,9 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/personal-statement'
     | '/register'
+    | '/review'
     | '/settings'
+    | '/timeline'
     | '/book/$bookId'
     | '/read/$bookId'
     | '/reflections/$id'
@@ -217,7 +241,9 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PersonalStatementRoute: typeof PersonalStatementRoute
   RegisterRoute: typeof RegisterRoute
+  ReviewRoute: typeof ReviewRoute
   SettingsRoute: typeof SettingsRoute
+  TimelineRoute: typeof TimelineRoute
   BookBookIdRoute: typeof BookBookIdRoute
   ReadBookIdRoute: typeof ReadBookIdRoute
   ReflectionsIdRoute: typeof ReflectionsIdRoute
@@ -227,11 +253,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/timeline': {
+      id: '/timeline'
+      path: '/timeline'
+      fullPath: '/timeline'
+      preLoaderRoute: typeof TimelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -345,7 +385,9 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PersonalStatementRoute: PersonalStatementRoute,
   RegisterRoute: RegisterRoute,
+  ReviewRoute: ReviewRoute,
   SettingsRoute: SettingsRoute,
+  TimelineRoute: TimelineRoute,
   BookBookIdRoute: BookBookIdRoute,
   ReadBookIdRoute: ReadBookIdRoute,
   ReflectionsIdRoute: ReflectionsIdRoute,

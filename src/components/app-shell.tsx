@@ -8,6 +8,8 @@ import {
   Star,
   Settings,
   BookOpen,
+  Brain,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
@@ -22,12 +24,22 @@ import {
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/review", label: "Daily Review", icon: Brain },
   { to: "/library", label: "Library", icon: Library },
   { to: "/my-books", label: "My Books", icon: Bookmark },
   { to: "/reflections", label: "Reflections", icon: PenLine },
   { to: "/personal-statement", label: "Personal Statement", icon: FileText },
   { to: "/achievements", label: "Achievements", icon: Star },
+  { to: "/timeline", label: "Timeline", icon: CalendarDays },
   { to: "/settings", label: "Settings", icon: Settings },
+] as const;
+
+const MOBILE_NAV = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/review", label: "Review", icon: Brain },
+  { to: "/library", label: "Library", icon: Library },
+  { to: "/reflections", label: "Reflections", icon: PenLine },
+  { to: "/timeline", label: "Timeline", icon: CalendarDays },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -100,7 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 backdrop-blur md:hidden">
         <div className="grid grid-cols-5">
-          {NAV.slice(0, 5).map((n) => {
+          {MOBILE_NAV.map((n) => {
             const active = path.startsWith(n.to);
             return (
               <Link
@@ -112,7 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <n.icon className="h-5 w-5" />
-                {n.label.split(" ")[0]}
+                {n.label}
               </Link>
             );
           })}
