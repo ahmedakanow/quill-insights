@@ -55,7 +55,7 @@ function Onboarding() {
     <div className="min-h-screen bg-background px-4 py-12">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8 flex items-center gap-2">
-          {[1, 2, 3].map((n) => (
+          {[1, 2, 3, 4].map((n) => (
             <div key={n} className={cn("h-1.5 flex-1 rounded-full", n <= step ? "bg-accent" : "bg-muted")} />
           ))}
         </div>
@@ -131,7 +131,51 @@ function Onboarding() {
             </div>
             <div className="mt-8 flex justify-between">
               <Button variant="ghost" onClick={() => setStep(2)}>Back</Button>
-              <Button onClick={finish} disabled={saving}>{saving ? "Saving…" : "Start reading"}</Button>
+              <Button onClick={() => setStep(4)}>Continue</Button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div>
+            <h1 className="font-display text-3xl font-semibold">When are your interviews?</h1>
+            <p className="mt-2 text-muted-foreground">
+              Most Oxford interviews are early December. Cambridge interviews run 7–18 December. We'll use this to schedule your review sessions.
+            </p>
+
+            <div className="mt-6 rounded-xl border border-border bg-card p-6 shadow-warm">
+              <label className="block text-sm font-medium">Year group</label>
+              <div className="mt-3 grid gap-2 md:grid-cols-2">
+                {([
+                  { v: "year_12", l: "Year 12", sub: "applying next year" },
+                  { v: "year_13", l: "Year 13", sub: "applying this year" },
+                ] as const).map((o) => (
+                  <button
+                    key={o.v}
+                    onClick={() => setYearGroup(o.v)}
+                    className={cn(
+                      "rounded-lg border-2 p-3 text-left transition-quill",
+                      yearGroup === o.v ? "border-accent bg-accent/10" : "border-border bg-card hover:border-accent/50",
+                    )}
+                  >
+                    <div className="font-display text-base font-semibold">{o.l}</div>
+                    <div className="text-xs text-muted-foreground">{o.sub}</div>
+                  </button>
+                ))}
+              </div>
+
+              <label className="mt-6 block text-sm font-medium">Expected interview date</label>
+              <input
+                type="date"
+                value={interviewDate}
+                onChange={(e) => setInterviewDate(e.target.value)}
+                className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="mt-8 flex justify-between">
+              <Button variant="ghost" onClick={() => setStep(3)}>Back</Button>
+              <Button onClick={finish} disabled={saving || !yearGroup}>{saving ? "Saving…" : "Start reading"}</Button>
             </div>
           </div>
         )}
