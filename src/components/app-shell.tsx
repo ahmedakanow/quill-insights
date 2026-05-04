@@ -9,7 +9,7 @@ import {
   Star,
   Settings,
   BookOpen,
-  Brain,
+  Repeat2,
   CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,7 @@ import {
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/review", label: "Daily Review", icon: Brain },
+  { to: "/review", label: "Daily Review", icon: Repeat2 },
   { to: "/library", label: "Library", icon: Library },
   { to: "/my-books", label: "My Books", icon: Bookmark },
   { to: "/reflections", label: "Reflections", icon: PenLine },
@@ -37,7 +37,7 @@ const NAV = [
 
 const MOBILE_NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/review", label: "Review", icon: Brain },
+  { to: "/review", label: "Review", icon: Repeat2 },
   { to: "/library", label: "Library", icon: Library },
   { to: "/reflections", label: "Reflections", icon: PenLine },
   { to: "/timeline", label: "Timeline", icon: CalendarDays },

@@ -60,6 +60,10 @@ function Reader() {
   const [selection, setSelection] = useState<{ text: string; pct: number; x: number; y: number } | null>(null);
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [showHint, setShowHint] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("quill-reader-hint-dismissed") !== "1";
+  });
 
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
@@ -308,6 +312,23 @@ function Reader() {
         </div>
       </header>
 
+      {/* First-visit hint */}
+      {showHint && (
+        <div className="mx-auto mt-3 flex max-w-2xl items-start gap-3 rounded-lg border border-border bg-card/80 px-4 py-2 text-sm shadow-warm">
+          <span className="mt-0.5">💡</span>
+          <div className="flex-1">
+            <span className="font-medium">Tip:</span> Select any text to highlight it, add a note, or bookmark the spot. Press <kbd className="rounded border border-border bg-muted px-1 font-mono text-xs">?</kbd> for keyboard shortcuts.
+          </div>
+          <button
+            onClick={() => { setShowHint(false); localStorage.setItem("quill-reader-hint-dismissed", "1"); }}
+            className="text-xs text-muted-foreground hover:text-foreground"
+            aria-label="Dismiss tip"
+          >
+            Got it
+          </button>
+        </div>
+      )}
+
       {/* Reading column */}
       <article
         ref={containerRef}
@@ -344,9 +365,15 @@ function Reader() {
       {/* Selection toolbar */}
       {selection && (
         <div
-          className="fixed z-50 flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-warm-lg"
-          style={{ left: Math.max(10, Math.min(window.innerWidth - 280, selection.x - 140)), top: Math.max(10, selection.y - 50) }}
+          className="fixed z-50 flex flex-col gap-1 rounded-lg border border-border bg-card p-2 shadow-warm-lg"
+          style={{ left: Math.max(10, Math.min(window.innerWidth - 300, selection.x - 150)), top: Math.max(10, selection.y - 70) }}
         >
+          <div className="px-1 pb-1 text-[11px] text-muted-foreground">
+            Highlighting:{" "}
+            <span className="font-medium text-foreground">
+              “{selection.text.length > 60 ? selection.text.slice(0, 60) + "…" : selection.text}”
+            </span>
+          </div>
           <div className="flex items-center gap-1">
             {COLORS.map((c) => (
               <button key={c} onClick={() => addAnnotation("highlight", c)}
@@ -354,12 +381,12 @@ function Reader() {
                 className={`hl-swatch h-6 w-6 rounded-full hl-${c} border border-black/10`} title={`Highlight ${c}`} />
             ))}
             <span className="mx-1 h-5 w-px bg-border" />
-            <button className="grid min-h-[36px] min-w-[36px] place-items-center rounded hover:bg-muted" title="Note"
+            <button className="grid min-h-[36px] min-w-[36px] place-items-center rounded hover:bg-muted" title="Add a note to this passage"
               aria-label="Add note"
               onClick={() => setNoteDraft("")}>
               <StickyNote className="h-4 w-4" />
             </button>
-            <button className="grid min-h-[36px] min-w-[36px] place-items-center rounded hover:bg-muted" title="Bookmark"
+            <button className="grid min-h-[36px] min-w-[36px] place-items-center rounded hover:bg-muted" title="Bookmark this spot"
               aria-label="Bookmark"
               onClick={() => addAnnotation("bookmark")}>
               <Bookmark className="h-4 w-4" />
