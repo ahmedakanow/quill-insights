@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, X, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, AlertOctagon } from "lucide-react";
 import { RequireAuth } from "@/components/require-auth";
 import { AppShell } from "@/components/app-shell";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +25,11 @@ function PSPage() {
   const [blocks, setBlocks] = useState<Record<string, Block>>({});
   const [reflections, setReflections] = useState<any[]>([]);
   const [openDialog, setOpenDialog] = useState<string | null>(null);
+  const [auditOpen, setAuditOpen] = useState(true);
+  const [allBooks, setAllBooks] = useState<any[]>([]);
+  const [progress, setProgress] = useState<any[]>([]);
+  const [annotationsByBook, setAnnotationsByBook] = useState<Record<string, number>>({});
+  const [reflectionsByBook, setReflectionsByBook] = useState<Record<string, any>>({});
   const timer = useRef<any>(null);
 
   useEffect(() => {
@@ -42,8 +47,21 @@ function PSPage() {
         });
         setBlocks(m);
       });
-    supabase.from("reflections").select("id, argument_summary, interview_point, books(title)")
-      .eq("user_id", user.id).eq("is_complete", true).then(({ data }) => setReflections(data ?? []));
+    supabase.from("reflections").select("id, argument_summary, interview_point, counterargument, book_id, books(title)")
+      .eq("user_id", user.id).eq("is_complete", true).then(({ data }) => {
+        setReflections(data ?? []);
+        const m: Record<string, any> = {};
+        (data ?? []).forEach((r: any) => { m[r.book_id] = r; });
+        setReflectionsByBook(m);
+      });
+    supabase.from("books").select("id, title, author").then(({ data }) => setAllBooks(data ?? []));
+    supabase.from("reading_progress").select("book_id, last_read_at, status").eq("user_id", user.id)
+      .then(({ data }) => setProgress(data ?? []));
+    supabase.from("annotations").select("book_id").eq("user_id", user.id).then(({ data }) => {
+      const m: Record<string, number> = {};
+      (data ?? []).forEach((a: any) => { m[a.book_id] = (m[a.book_id] ?? 0) + 1; });
+      setAnnotationsByBook(m);
+    });
   }, [user]);
 
   async function persist(section: string, patch: Partial<Block>) {
