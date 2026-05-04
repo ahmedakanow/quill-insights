@@ -28,6 +28,7 @@ function Reader() {
   const [annotations, setAnnotations] = useState<any[]>([]);
   const [scrollPct, setScrollPct] = useState(0);
   const [selection, setSelection] = useState<{ text: string; pct: number; x: number; y: number } | null>(null);
+  const [noteDraft, setNoteDraft] = useState<string | null>(null);
 
   const [fontSize, setFontSize] = useState(18);
   const [lineHeight, setLineHeight] = useState(1.8);
